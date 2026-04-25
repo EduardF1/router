@@ -47,6 +47,7 @@ export type {
   UpdatableStaticRouteOption,
   MetaDescriptor,
   RouteLinkEntry,
+  MatchParamsFn,
   ParseParamsFn,
   SearchFilter,
   ResolveId,

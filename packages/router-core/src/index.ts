@@ -144,6 +144,7 @@ export type {
   ErrorComponentProps,
   NotFoundRouteProps,
   ResolveParams,
+  MatchParamsFn,
   ParseParamsFn,
   StringifyParamsFn,
   ParamsOptions,

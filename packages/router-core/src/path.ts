@@ -100,6 +100,7 @@ interface ResolvePathOptions {
   to: string
   trailingSlash?: 'always' | 'never' | 'preserve'
   cache?: LRUCache<string, string>
+  preserveParamSyntax?: boolean
 }
 
 /**
@@ -111,6 +112,7 @@ export function resolvePath({
   to,
   trailingSlash = 'never',
   cache,
+  preserveParamSyntax = false,
 }: ResolvePathOptions) {
   const isAbsolute = to.startsWith('/')
   const isBase = !isAbsolute && to === '.'
@@ -118,7 +120,9 @@ export function resolvePath({
   let key
   if (cache) {
     // `trailingSlash` is static per router, so it doesn't need to be part of the cache key
-    key = isAbsolute ? to : isBase ? base : base + '\0' + to
+    key = `${preserveParamSyntax ? 'preserve\0' : ''}${
+      isAbsolute ? to : isBase ? base : base + '\0' + to
+    }`
     const cached = cache.get(key)
     if (cached) return cached
   }
@@ -167,6 +171,20 @@ export function resolvePath({
     }
   }
 
+  const resolved = cleanPath(baseSegments.join('/')) || '/'
+  if (preserveParamSyntax) {
+    if (key && cache) cache.set(key, resolved)
+    return resolved
+  }
+
+  const hasParamSyntax = isAbsolute
+    ? to.includes('$')
+    : base.includes('$') || to.includes('$')
+  if (!hasParamSyntax) {
+    if (key && cache) cache.set(key, resolved)
+    return resolved
+  }
+
   let segment
   let joined = ''
   for (let i = 0; i < baseSegments.length; i++) {
@@ -192,8 +210,7 @@ export function resolvePath({
       joined += `${prefix}{-$${value}}${suffix}`
     }
   }
-  joined = cleanPath(joined)
-  const result = joined || '/'
+  const result = cleanPath(joined) || '/'
   if (key && cache) cache.set(key, result)
   return result
 }

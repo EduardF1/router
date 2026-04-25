@@ -22,6 +22,44 @@ function makeTree(routes: Array<string>) {
 }
 
 describe('findRouteMatch', () => {
+  describe('routesByPath', () => {
+    it('uses exact route-template keys while matching duplicate bare aliases by insertion order', () => {
+      const routeTree = {
+        id: '__root__',
+        isRoot: true,
+        fullPath: '/',
+        path: '/',
+        children: [
+          {
+            id: '/$id',
+            fullPath: '/$id',
+            path: '$id',
+          },
+          {
+            id: '/{$id}',
+            fullPath: '/{$id}',
+            path: '{$id}',
+          },
+          {
+            id: '/prefix{$id}',
+            fullPath: '/prefix{$id}',
+            path: 'prefix{$id}',
+          },
+        ],
+      }
+
+      const { processedTree, routesByPath } = processRouteTree(routeTree)
+
+      expect(routesByPath['/$id']?.id).toBe('/$id')
+      expect(routesByPath['/{$id}']?.id).toBe('/{$id}')
+      expect(routesByPath['/prefix{$id}']?.id).toBe('/prefix{$id}')
+      expect(findRouteMatch('/value', processedTree)?.route.id).toBe('/$id')
+      expect(findRouteMatch('/prefixvalue', processedTree)?.route.id).toBe(
+        '/prefix{$id}',
+      )
+    })
+  })
+
   describe('priority', () => {
     describe('basic permutations priorities', () => {
       it('/static/static vs /static/dynamic', () => {
@@ -907,10 +945,7 @@ describe('findRouteMatch', () => {
             path: '$foo',
             fullPath: '/$foo',
             options: {
-              params: { parse: () => {} },
-              skipRouteOnParseError: {
-                params: true,
-              },
+              params: { match: () => true },
             },
             children: [
               {
@@ -947,10 +982,10 @@ describe('findRouteMatch', () => {
               "fullPath": "/$foo",
               "index": null,
               "kind": 1,
+              "match": null,
+              "matchPriority": 0,
               "optional": null,
               "parent": [Circular],
-              "parse": null,
-              "parsingPriority": 0,
               "pathless": [
                 {
                   "depth": 2,
@@ -962,10 +997,10 @@ describe('findRouteMatch', () => {
                     "fullPath": "/$foo/",
                     "index": null,
                     "kind": 4,
+                    "match": null,
+                    "matchPriority": 0,
                     "optional": null,
                     "parent": [Circular],
-                    "parse": null,
-                    "parsingPriority": 0,
                     "pathless": null,
                     "route": {
                       "fullPath": "/$foo/",
@@ -973,16 +1008,15 @@ describe('findRouteMatch', () => {
                       "options": {},
                       "path": "/",
                     },
-                    "skipOnParamError": false,
                     "static": null,
                     "staticInsensitive": null,
                     "wildcard": null,
                   },
                   "kind": 5,
+                  "match": [Function],
+                  "matchPriority": 0,
                   "optional": null,
                   "parent": [Circular],
-                  "parse": [Function],
-                  "parsingPriority": 0,
                   "pathless": null,
                   "route": {
                     "children": [
@@ -1003,15 +1037,11 @@ describe('findRouteMatch', () => {
                     "id": "/$foo/_layout",
                     "options": {
                       "params": {
-                        "parse": [Function],
-                      },
-                      "skipRouteOnParseError": {
-                        "params": true,
+                        "match": [Function],
                       },
                     },
                     "path": "$foo",
                   },
-                  "skipOnParamError": true,
                   "static": null,
                   "staticInsensitive": Map {
                     "bar" => {
@@ -1020,10 +1050,10 @@ describe('findRouteMatch', () => {
                       "fullPath": "/$foo/bar",
                       "index": null,
                       "kind": 0,
+                      "match": null,
+                      "matchPriority": 0,
                       "optional": null,
                       "parent": [Circular],
-                      "parse": null,
-                      "parsingPriority": 0,
                       "pathless": null,
                       "route": {
                         "fullPath": "/$foo/bar",
@@ -1031,7 +1061,6 @@ describe('findRouteMatch', () => {
                         "options": {},
                         "path": "bar",
                       },
-                      "skipOnParamError": false,
                       "static": null,
                       "staticInsensitive": null,
                       "wildcard": null,
@@ -1042,7 +1071,6 @@ describe('findRouteMatch', () => {
               ],
               "prefix": undefined,
               "route": null,
-              "skipOnParamError": false,
               "static": null,
               "staticInsensitive": Map {
                 "hello" => {
@@ -1051,10 +1079,10 @@ describe('findRouteMatch', () => {
                   "fullPath": "/$foo/hello",
                   "index": null,
                   "kind": 0,
+                  "match": null,
+                  "matchPriority": 0,
                   "optional": null,
                   "parent": [Circular],
-                  "parse": null,
-                  "parsingPriority": 0,
                   "pathless": null,
                   "route": {
                     "fullPath": "/$foo/hello",
@@ -1062,7 +1090,6 @@ describe('findRouteMatch', () => {
                     "options": {},
                     "path": "$foo/hello",
                   },
-                  "skipOnParamError": false,
                   "static": null,
                   "staticInsensitive": null,
                   "wildcard": null,
@@ -1079,10 +1106,10 @@ describe('findRouteMatch', () => {
             "fullPath": "/",
             "index": null,
             "kind": 4,
+            "match": null,
+            "matchPriority": 0,
             "optional": null,
             "parent": [Circular],
-            "parse": null,
-            "parsingPriority": 0,
             "pathless": null,
             "route": {
               "fullPath": "/",
@@ -1090,19 +1117,17 @@ describe('findRouteMatch', () => {
               "options": {},
               "path": "/",
             },
-            "skipOnParamError": false,
             "static": null,
             "staticInsensitive": null,
             "wildcard": null,
           },
           "kind": 0,
+          "match": null,
+          "matchPriority": 0,
           "optional": null,
           "parent": null,
-          "parse": null,
-          "parsingPriority": 0,
           "pathless": null,
           "route": null,
-          "skipOnParamError": false,
           "static": null,
           "staticInsensitive": null,
           "wildcard": null,
@@ -1122,10 +1147,9 @@ describe('findRouteMatch', () => {
             path: '$foo',
             options: {
               params: {
-                parse: (params: Record<string, string>) => params,
+                match: () => true,
               },
               // force the creation of a pathless node
-              skipRouteOnParseError: { params: true },
             },
             children: [
               {
@@ -1156,10 +1180,9 @@ describe('findRouteMatch', () => {
             path: 'one_{-$foo}',
             options: {
               params: {
-                parse: (params: Record<string, string>) => params,
+                match: () => true,
               },
               // force the creation of a pathless node
-              skipRouteOnParseError: { params: true },
             },
             children: [
               {
