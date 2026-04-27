@@ -414,9 +414,14 @@ export type RscStream<T> = {
 
 export type Method = 'GET' | 'POST'
 
-export type ServerFnReturnType<TRegister, TResponse> =
-  TResponse extends PromiseLike<infer U>
-    ? Promise<ServerFnReturnType<TRegister, U>>
+export type ServerFnReturnType<
+  TRegister,
+  TResponse,
+  TStrict extends boolean = true,
+> = TStrict extends false
+  ? TResponse
+  : TResponse extends PromiseLike<infer U>
+    ? Promise<ServerFnReturnType<TRegister, U, TStrict>>
     : TResponse extends Response
       ? TResponse
       : ValidateSerializableInput<TRegister, TResponse>
@@ -427,9 +432,45 @@ export type ServerFn<
   TMiddlewares,
   TInputValidator,
   TResponse,
+  TStrict extends boolean = true,
 > = (
   ctx: ServerFnCtx<TRegister, TMethod, TMiddlewares, TInputValidator>,
-) => ServerFnReturnType<TRegister, TResponse>
+) => ServerFnReturnType<TRegister, TResponse, TStrict>
+
+export interface ServerFnStrictHandlerOptions<
+  TRegister,
+  TMethod,
+  TMiddlewares,
+  TInputValidator,
+  TResponse,
+> {
+  strict?: true
+  handler: ServerFn<
+    TRegister,
+    TMethod,
+    TMiddlewares,
+    TInputValidator,
+    TResponse
+  >
+}
+
+export interface ServerFnLooseHandlerOptions<
+  TRegister,
+  TMethod,
+  TMiddlewares,
+  TInputValidator,
+  TResponse,
+> {
+  strict: false
+  handler: ServerFn<
+    TRegister,
+    TMethod,
+    TMiddlewares,
+    TInputValidator,
+    TResponse,
+    false
+  >
+}
 
 export interface ServerFnCtx<
   TRegister,
@@ -626,15 +667,35 @@ export interface ServerFnHandler<
   TMiddlewares,
   TInputValidator,
 > {
-  handler: <TNewResponse>(
-    fn?: ServerFn<
-      TRegister,
-      TMethod,
-      TMiddlewares,
-      TInputValidator,
-      TNewResponse
-    >,
-  ) => Fetcher<TMiddlewares, TInputValidator, TNewResponse>
+  handler: {
+    <TNewResponse>(
+      opts: ServerFnLooseHandlerOptions<
+        TRegister,
+        TMethod,
+        TMiddlewares,
+        TInputValidator,
+        TNewResponse
+      >,
+    ): Fetcher<TMiddlewares, TInputValidator, TNewResponse>
+    <TNewResponse>(
+      opts: ServerFnStrictHandlerOptions<
+        TRegister,
+        TMethod,
+        TMiddlewares,
+        TInputValidator,
+        TNewResponse
+      >,
+    ): Fetcher<TMiddlewares, TInputValidator, TNewResponse>
+    <TNewResponse>(
+      fn?: ServerFn<
+        TRegister,
+        TMethod,
+        TMiddlewares,
+        TInputValidator,
+        TNewResponse
+      >,
+    ): Fetcher<TMiddlewares, TInputValidator, TNewResponse>
+  }
 }
 
 export interface ServerFnBuilder<TRegister, TMethod extends Method = 'GET'>

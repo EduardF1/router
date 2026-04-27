@@ -155,6 +155,66 @@ describe('createServerFn compiles correctly', async () => {
     `)
   })
 
+  test('should unwrap handler object form', async () => {
+    const code = `
+        import { createServerFn } from '@tanstack/react-start'
+        const myServerFn = createServerFn().handler({
+          strict: false,
+          handler: async () => {
+            return { func: () => 'hello from the server' }
+          },
+        })`
+
+    const compiledResultClient = await compile({
+      code,
+      env: 'client',
+      isProviderFile: false,
+      mode: 'build',
+    })
+
+    const compiledResultServerCaller = await compile({
+      code,
+      env: 'server',
+      isProviderFile: false,
+      mode: 'build',
+    })
+
+    const compiledResultServerProvider = await compile({
+      code,
+      env: 'server',
+      isProviderFile: true,
+      mode: 'build',
+    })
+
+    expect(compiledResultClient!.code).toMatchInlineSnapshot(`
+      "import { createClientRpc } from '@tanstack/react-start/client-rpc';
+      import { createServerFn } from '@tanstack/react-start';
+      const myServerFn = createServerFn().handler(createClientRpc("2c205add8e6755de551521133ddff3d48859b1631add5f1bbe5c48a5664f319b"));"
+    `)
+
+    expect(compiledResultServerCaller!.code).toMatchInlineSnapshot(`
+      "import { createSsrRpc } from '@tanstack/react-start/ssr-rpc';
+      import { createServerFn } from '@tanstack/react-start';
+      const myServerFn = createServerFn().handler(createSsrRpc("2c205add8e6755de551521133ddff3d48859b1631add5f1bbe5c48a5664f319b"));"
+    `)
+
+    expect(compiledResultServerProvider!.code).toMatchInlineSnapshot(`
+      "import { createServerRpc } from '@tanstack/react-start/server-rpc';
+      import { createServerFn } from '@tanstack/react-start';
+      const myServerFn_createServerFn_handler = createServerRpc({
+        id: "2c205add8e6755de551521133ddff3d48859b1631add5f1bbe5c48a5664f319b",
+        name: "myServerFn",
+        filename: "src/test.ts"
+      }, opts => myServerFn.__executeServer(opts));
+      const myServerFn = createServerFn().handler(myServerFn_createServerFn_handler, async () => {
+        return {
+          func: () => 'hello from the server'
+        };
+      });
+      export { myServerFn_createServerFn_handler };"
+    `)
+  })
+
   test('should use dce by default', async () => {
     const code = `
       import { createServerFn } from '@tanstack/react-start'

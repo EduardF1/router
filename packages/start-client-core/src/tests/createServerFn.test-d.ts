@@ -518,6 +518,43 @@ test('createServerFn cannot return function', () => {
     }>()
 })
 
+test('createServerFn handler strict false can return function', () => {
+  const fn = createServerFn().handler({
+    strict: false,
+    handler: () => ({
+      func: () => 'func' as const,
+    }),
+  })
+
+  expectTypeOf(fn()).toEqualTypeOf<
+    Promise<{
+      func: () => 'func'
+    }>
+  >()
+
+  const promiseFn = createServerFn().handler({
+    strict: false,
+    handler: () =>
+      Promise.resolve({
+        func: () => 'func' as const,
+      }),
+  })
+
+  expectTypeOf(promiseFn()).toEqualTypeOf<
+    Promise<{
+      func: () => 'func'
+    }>
+  >()
+})
+
+test('ServerFnReturnType skips serialization when strict is false', () => {
+  expectTypeOf<
+    ServerFnReturnType<Register, { func: () => 'func' }, false>
+  >().toEqualTypeOf<{
+    func: () => 'func'
+  }>()
+})
+
 test('createServerFn cannot validate function', () => {
   const validator = createServerFn().inputValidator<
     (input: { func: () => 'string' }) => { output: 'string' }

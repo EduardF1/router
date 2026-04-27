@@ -277,9 +277,9 @@ export function handleCreateServerFn(
       }
     }
 
-    const handlerFnPath = handler?.firstArgPath
+    const handlerArgPath = handler?.firstArgPath
 
-    if (!handler || !handlerFnPath?.node) {
+    if (!handler || !handlerArgPath?.node) {
       throw codeFrameError(
         context.code,
         candidatePath.node.callee.loc!,
@@ -288,12 +288,44 @@ export function handleCreateServerFn(
     }
 
     // Validate the handler argument is an expression (not a SpreadElement, etc.)
-    if (!t.isExpression(handlerFnPath.node)) {
+    if (!t.isExpression(handlerArgPath.node)) {
       throw codeFrameError(
         context.code,
-        handlerFnPath.node.loc!,
-        `handler() must be called with an expression, not a ${handlerFnPath.node.type}`,
+        handlerArgPath.node.loc!,
+        `handler() must be called with an expression, not a ${handlerArgPath.node.type}`,
       )
+    }
+
+    let handlerFnPath = handlerArgPath as babel.NodePath<t.Expression>
+
+    if (handlerArgPath.isObjectExpression()) {
+      const handlerPropertyPath = handlerArgPath
+        .get('properties')
+        .find(
+          (propertyPath) =>
+            propertyPath.isObjectProperty() &&
+            !propertyPath.node.computed &&
+            t.isIdentifier(propertyPath.node.key, { name: 'handler' }),
+        )
+
+      if (!handlerPropertyPath) {
+        throw codeFrameError(
+          context.code,
+          handlerArgPath.node.loc!,
+          `handler() object argument must have a "handler" property!`,
+        )
+      }
+
+      const valuePath = handlerPropertyPath.get('value')
+      if (!valuePath.isExpression()) {
+        throw codeFrameError(
+          context.code,
+          valuePath.node.loc!,
+          `handler() object "handler" property must be an expression, not a ${valuePath.node.type}`,
+        )
+      }
+
+      handlerFnPath = valuePath
     }
 
     const handlerFn = handlerFnPath.node
@@ -405,7 +437,7 @@ export function handleCreateServerFn(
 
       // Replace ONLY the handler argument with the RPC stub
       // Keep the createServerFn().handler() wrapper intact for client middleware
-      handlerFnPath.replaceWith(rpcStub)
+      handlerArgPath.replaceWith(rpcStub)
     }
   }
 
